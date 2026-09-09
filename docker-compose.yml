@@ -1,0 +1,103 @@
+name: chargeops
+
+x-app-environment: &app-environment
+  DB_HOST: db
+  DB_PORT: 3306
+  DB_USER: chargeops
+  DB_PASS: ${DB_PASS:-chargeops-local-password}
+  DB_NAME: ev
+  DB_SSL: "false"
+  PORT: 4000
+  STORAGE_BUCKET: chargeops-local
+  STORAGE_DIR: /app/server/.storage
+  STORAGE_SIGNING_SECRET: ${STORAGE_SIGNING_SECRET:-local-storage-secret-change-me}
+  AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:-local-auth-secret-change-me}
+  AUTH_OPS_PASSWORD: ${AUTH_OPS_PASSWORD:-chargeops-demo}
+  AUTH_TECH_PASSWORD: ${AUTH_TECH_PASSWORD:-chargeops-demo}
+  AUTH_VIEWER_PASSWORD: ${AUTH_VIEWER_PASSWORD:-chargeops-demo}
+  CORS_ORIGIN: http://localhost:8080
+  TRUST_PROXY: "true"
+
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-chargeops-root-password}
+      MYSQL_DATABASE: ev
+      MYSQL_USER: chargeops
+      MYSQL_PASSWORD: ${DB_PASS:-chargeops-local-password}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--event-scheduler=ON"]
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: .
+      target: runtime
+    command: ["node", "scripts/setup-db.mjs"]
+    environment:
+      <<: *app-environment
+      DB_USER: root
+      DB_PASS: ${MYSQL_ROOT_PASSWORD:-chargeops-root-password}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      target: runtime
+    environment: *app-environment
+    ports:
+      - "4000:4000"
+    volumes:
+      - object-storage:/app/server/.storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      target: runtime
+    command: ["node", "server/workers/supervisor.js"]
+    environment: *app-environment
+    volumes:
+      - object-storage:/app/server/.storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      target: web
+      args:
+        VITE_API_URL: /api
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  object-storage:
