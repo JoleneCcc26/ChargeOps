@@ -284,7 +284,7 @@ CREATE TABLE IF NOT EXISTS simulation_run (
 -- way to tell them apart is a hard-coded id, which silently becomes wrong the
 -- moment the seed data changes.
 -- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS APP_META (
+CREATE TABLE IF NOT EXISTS app_meta (
     Meta_Key   VARCHAR(64)  PRIMARY KEY,
     Meta_Value VARCHAR(255) NOT NULL,
     Updated_At DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -315,7 +315,7 @@ CREATE TABLE IF NOT EXISTS APP_META (
 -- wallet is credited, a refund is paid. Nothing happens while the request sits
 -- in the queue, which is exactly what makes the queue safe to leave unattended.
 -- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS BILLING_REQUEST (
+CREATE TABLE IF NOT EXISTS billing_request (
     Request_ID   BIGINT       PRIMARY KEY AUTO_INCREMENT,
     User_ID      INT          NOT NULL,
 
@@ -348,8 +348,8 @@ CREATE TABLE IF NOT EXISTS BILLING_REQUEST (
       CHECK (Status IN ('Pending','Approved','Rejected')),
     CONSTRAINT chk_billing_request_amount CHECK (Amount >= 0),
 
-    FOREIGN KEY (User_ID)    REFERENCES USER(User_ID),
-    FOREIGN KEY (Plan_ID)    REFERENCES MEMBERSHIP(Plan_ID),
+    FOREIGN KEY (User_ID)    REFERENCES user(User_ID),
+    FOREIGN KEY (Plan_ID)    REFERENCES membership(Plan_ID),
 
     -- The finance inbox reads this constantly: pending first, oldest first.
     INDEX idx_billing_request_queue (Status, Requested_At),
