@@ -1,12 +1,39 @@
-.git
-.github
+# Keep the build context small, and make sure nothing secret or machine-specific
+# can reach an image layer. Anything listed here is invisible to `docker build`.
+
+# Installed inside the image by each stage, never copied from the host.
 node_modules
+
+# Build output. The web image builds its own copy from source.
 dist
+
+# Secrets and local configuration. The example files are templates for humans:
+# the container is configured entirely through environment variables.
 .env
 .env.*
+**/.env
+**/.env.example
 server/.env
+
+# Uploaded photos and generated invoice PDFs. These belong in a volume.
 server/.storage
+
+# Version control and CI metadata.
+.git
+.github
+.gitignore
+
+# Course deliverables, database dumps, screenshots, sample uploads, notes.
+deliverables
+backups
 samples
+.artifacts
+docs
+
+# Vercel serverless entry point; the container runs server/index.js directly.
+api
+
+# Local developer helpers.
+start.cmd
 logs
 *.log
-
