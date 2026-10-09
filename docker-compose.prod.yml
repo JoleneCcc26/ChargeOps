@@ -8,10 +8,11 @@
 # Everything written below is non-secret: host names, a bucket name, a project
 # id. There is no .env file next to this one and none inside the containers.
 #
-#   export REGISTRY=us-central1-docker.pkg.dev/chargeops-group13/chargeops
-#   export TAG=v2
 #   docker compose -f docker-compose.prod.yml pull
 #   docker compose -f docker-compose.prod.yml up -d
+#
+# Image tags and the database address are written out in full on purpose: with
+# nothing to substitute, the deployment directory needs no .env file at all.
 #
 # Credentials reach the containers through the VM's own service account:
 #   Secret Manager  -> roles/secretmanager.secretAccessor on each secret
@@ -21,7 +22,7 @@ name: chargeops
 
 x-app-environment: &app-environment
   # Cloud SQL, reachable only inside our VPC - the instance has no public IP.
-  DB_HOST: ${DB_HOST:?set DB_HOST to the Cloud SQL private IP}
+  DB_HOST: 10.117.0.3          # Cloud SQL, private IP only
   DB_PORT: 3306
   DB_USER: chargeops
   DB_NAME: ev
@@ -41,13 +42,13 @@ services:
   # schema_migrations, and exits. Runs before the API every time; applying
   # nothing is the normal case.
   migrate:
-    image: ${REGISTRY}/api:${TAG}
+    image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v2
     command: ["node", "scripts/migrate.mjs"]
     environment: *app-environment
     restart: "no"
 
   api:
-    image: ${REGISTRY}/api:${TAG}
+    image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v2
     environment: *app-environment
     depends_on:
       migrate:
@@ -60,7 +61,7 @@ services:
     restart: unless-stopped
 
   worker:
-    image: ${REGISTRY}/api:${TAG}
+    image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v2
     command: ["node", "server/workers/supervisor.js"]
     environment: *app-environment
     depends_on:
@@ -71,7 +72,7 @@ services:
   # Simulated charger fleet. Without it the deployment has no drivers, so the
   # fleet settles at zero sessions in use.
   traffic:
-    image: ${REGISTRY}/api:${TAG}
+    image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v2
     command: ["node", "scripts/live-traffic.mjs"]
     environment:
       <<: *app-environment
@@ -83,7 +84,7 @@ services:
     restart: unless-stopped
 
   web:
-    image: ${REGISTRY}/web:${TAG}
+    image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/web:v2
     ports:
       - "80:80"
     depends_on:
