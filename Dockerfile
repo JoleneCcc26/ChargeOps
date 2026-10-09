@@ -46,4 +46,4 @@ COPY migrations ./migrations
 RUN mkdir -p /app/server/.storage && chown -R node:node /app
 USER node
 EXPOSE 4000
-CMD ["node", "server/index.js"]
+CMD ["node", "--import", "./server/boot.js", "server/index.js"]

@@ -43,7 +43,7 @@ services:
   # nothing is the normal case.
   migrate:
     image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v3
-    command: ["node", "scripts/migrate.mjs"]
+    command: ["node", "--import", "./server/boot.js", "scripts/migrate.mjs"]
     environment: *app-environment
     restart: "no"
 
@@ -62,7 +62,7 @@ services:
 
   worker:
     image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v3
-    command: ["node", "server/workers/supervisor.js"]
+    command: ["node", "--import", "./server/boot.js", "server/workers/supervisor.js"]
     environment: *app-environment
     depends_on:
       migrate:
@@ -73,7 +73,7 @@ services:
   # fleet settles at zero sessions in use.
   traffic:
     image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v3
-    command: ["node", "scripts/live-traffic.mjs"]
+    command: ["node", "--import", "./server/boot.js", "scripts/live-traffic.mjs"]
     environment:
       <<: *app-environment
       DEMO_API_URL: http://api:4000
