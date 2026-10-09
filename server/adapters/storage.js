@@ -39,6 +39,12 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Milestone 4: the same six functions, backed by Google Cloud Storage when
+// STORAGE_DRIVER=gcs. The cloud module is imported only in that case, so a
+// laptop with no Google credentials keeps running the local backend untouched.
+const DRIVER = (process.env.STORAGE_DRIVER || "local").toLowerCase();
+const cloud = DRIVER === "gcs" ? await import("./storage.gcs.js") : null;
+
 /** Local "bucket". In the cloud this becomes process.env.S3_BUCKET. */
 export const BUCKET = process.env.STORAGE_BUCKET || "chargeops-local";
 
@@ -122,6 +128,7 @@ function resolveInsideBucket(rel, allowRoot) {
  * attachment row (S3 gives you the same thing back as the object's ETag).
  */
 export async function putObject(key, body, contentType = "application/octet-stream") {
+  if (cloud) return cloud.putObject(key, body, contentType);
   const full = keyToPath(key);
   await fs.mkdir(path.dirname(full), { recursive: true });
   const buf = Buffer.isBuffer(body) ? body : Buffer.from(body);
@@ -146,6 +153,7 @@ export async function putObject(key, body, contentType = "application/octet-stre
 
 /** Read bytes back. Throws if the key does not exist. */
 export async function getObject(key) {
+  if (cloud) return cloud.getObject(key);
   const full = keyToPath(key);
   const body = await fs.readFile(full);
   let contentType = "application/octet-stream";
@@ -160,6 +168,7 @@ export async function getObject(key) {
 
 /** Size + content type without transferring the bytes. */
 export async function headObject(key) {
+  if (cloud) return cloud.headObject(key);
   const full = keyToPath(key);
   const stat = await fs.stat(full);
   let contentType = "application/octet-stream";
@@ -173,12 +182,14 @@ export async function headObject(key) {
 }
 
 export async function deleteObject(key) {
+  if (cloud) return cloud.deleteObject(key);
   const full = keyToPath(key);
   await fs.rm(full, { force: true });
   await fs.rm(`${full}.meta.json`, { force: true });
 }
 
 export async function listObjects(prefix = "") {
+  if (cloud) return cloud.listObjects(prefix);
   const base = prefixToPath(prefix);
   const out = [];
   async function walk(dir, rel) {
@@ -247,6 +258,7 @@ function signKey(key, expires) {
 
 /** Total bytes + object count, shown on the ops dashboard. */
 export async function storageStats() {
+  if (cloud) return cloud.storageStats();
   const objects = await listObjects("");
   return {
     bucket: BUCKET,
@@ -258,6 +270,7 @@ export async function storageStats() {
 }
 
 export async function ensureBucket() {
+  if (cloud) return cloud.ensureBucket();
   await fs.mkdir(ROOT, { recursive: true });
   return ROOT;
 }

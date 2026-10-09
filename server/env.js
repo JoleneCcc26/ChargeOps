@@ -25,6 +25,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
+import { loadSecrets } from "./secrets.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -37,3 +38,10 @@ dotenv.config({ path: path.join(ROOT, "server", ".env") });
 dotenv.config({ path: path.join(ROOT, ".env") });
 
 export const ENV_LOADED_FROM = path.join(ROOT, "server", ".env");
+
+// In the cloud there is no .env file at all: the container is given the NAMES of
+// its secrets and fetches the values from Secret Manager using the VM's service
+// account. Doing it here, in the one module every entry point imports first,
+// means the API, the workers and the scripts all boot with the same
+// configuration. Top-level await makes importers wait for it.
+export const SECRETS = await loadSecrets();

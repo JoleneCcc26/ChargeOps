@@ -13,6 +13,9 @@
     "dev:quiet": "concurrently -n server,workers,web -c blue,magenta,green \"npm run dev:server\" \"npm run dev:workers\" \"npm run dev\"",
     "//setup:db": "Create the database, load both schemas, drop the billing triggers, geocode stations.",
     "setup:db": "node scripts/setup-db.mjs",
+    "//migrate": "Apply the structural migrations in migrations/ to whatever database DB_HOST points at. Safe to re-run; each file is applied once and recorded in schema_migrations.",
+    "migrate": "node scripts/migrate.mjs",
+    "migrate:status": "node scripts/migrate.mjs --status",
     "seed:demo": "node scripts/make-samples.mjs",
     "//seed:activity": "Shape the data to look like a live network: spread bulk history, put a realistic share of chargers mid-session. Re-run after a load test.",
     "seed:activity": "node scripts/seed-activity.mjs",
@@ -44,6 +47,8 @@
   },
   "//dependencies": "What the server loads at runtime. The front end libraries are dev dependencies because Vite bundles them into dist/ at build time and the API never imports them, which keeps the runtime container small.",
   "dependencies": {
+    "@google-cloud/secret-manager": "^7.1.1",
+    "@google-cloud/storage": "^8.4.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
