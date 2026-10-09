@@ -40,6 +40,9 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY server ./server
 COPY scripts ./scripts
+# The schema the managed database is built from travels with the image, so a
+# deploy and the migration that goes with it can never be different versions.
+COPY migrations ./migrations
 RUN mkdir -p /app/server/.storage && chown -R node:node /app
 USER node
 EXPOSE 4000
