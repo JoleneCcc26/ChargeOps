@@ -33,6 +33,30 @@ const SECRETS = {
   DEMO_PASSWORD: "chargeops-demo-password",
 };
 
+/**
+ * Read a secret from the environment.
+ *
+ * In production there is no fallback: if Secret Manager did not supply the
+ * value, the process refuses to start. A default that silently applies in
+ * production is worse than a crash - it is a password that looks configured,
+ * appears in no screenshot, and is identical in every deployment that ever
+ * copied this repository.
+ *
+ * Locally the development value is used, so `docker compose up` still works
+ * with no cloud account at all.
+ */
+export function requiredSecret(name, developmentValue) {
+  const value = process.env[name];
+  if (value) return value;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      `${name} is not set. In production it must come from Secret Manager ` +
+        `(SECRETS_PROVIDER=gcp); there is no built-in default.`
+    );
+  }
+  return developmentValue;
+}
+
 export async function loadSecrets() {
   if (PROVIDER !== "gcp") return { provider: PROVIDER, loaded: [] };
   if (!PROJECT) throw new Error("SECRETS_PROVIDER=gcp but SECRETS_PROJECT is not set");

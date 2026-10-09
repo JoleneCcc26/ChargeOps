@@ -42,13 +42,13 @@ services:
   # schema_migrations, and exits. Runs before the API every time; applying
   # nothing is the normal case.
   migrate:
-    image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v2
+    image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v3
     command: ["node", "scripts/migrate.mjs"]
     environment: *app-environment
     restart: "no"
 
   api:
-    image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v2
+    image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v3
     environment: *app-environment
     depends_on:
       migrate:
@@ -61,7 +61,7 @@ services:
     restart: unless-stopped
 
   worker:
-    image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v2
+    image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v3
     command: ["node", "server/workers/supervisor.js"]
     environment: *app-environment
     depends_on:
@@ -72,7 +72,7 @@ services:
   # Simulated charger fleet. Without it the deployment has no drivers, so the
   # fleet settles at zero sessions in use.
   traffic:
-    image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v2
+    image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v3
     command: ["node", "scripts/live-traffic.mjs"]
     environment:
       <<: *app-environment
@@ -84,7 +84,7 @@ services:
     restart: unless-stopped
 
   web:
-    image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/web:v2
+    image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/web:v3
     ports:
       - "80:80"
     depends_on:

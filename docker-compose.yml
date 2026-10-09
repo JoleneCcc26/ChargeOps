@@ -1,5 +1,7 @@
 name: chargeops
 
+# Local development only. The deployed stack takes every one of these from
+# Secret Manager; nothing here is a credential that works in the cloud.
 x-app-environment: &app-environment
   DB_HOST: db
   DB_PORT: 3306
@@ -12,9 +14,9 @@ x-app-environment: &app-environment
   STORAGE_DIR: /app/server/.storage
   STORAGE_SIGNING_SECRET: ${STORAGE_SIGNING_SECRET:-local-storage-secret-change-me}
   AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:-local-auth-secret-change-me}
-  AUTH_OPS_PASSWORD: ${AUTH_OPS_PASSWORD:-chargeops-demo}
-  AUTH_TECH_PASSWORD: ${AUTH_TECH_PASSWORD:-chargeops-demo}
-  AUTH_VIEWER_PASSWORD: ${AUTH_VIEWER_PASSWORD:-chargeops-demo}
+  AUTH_OPS_PASSWORD: ${AUTH_OPS_PASSWORD:-chargeops-local-demo}
+  AUTH_TECH_PASSWORD: ${AUTH_TECH_PASSWORD:-chargeops-local-demo}
+  AUTH_VIEWER_PASSWORD: ${AUTH_VIEWER_PASSWORD:-chargeops-local-demo}
   CORS_ORIGIN: http://localhost:8080
   TRUST_PROXY: "true"
 

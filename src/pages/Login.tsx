@@ -36,7 +36,10 @@ const SITE_HOSTS = [
 export function Login() {
   const { login } = useAuth();
   const [username, setUsername] = useState("ops");
-  const [password, setPassword] = useState("chargeops-demo");
+  // Deliberately empty. The demo password used to be pre-filled here and
+  // printed under the account list, which put the credential inside the
+  // front-end bundle and on screen for anyone who opened the page.
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,7 +105,9 @@ export function Login() {
             ))}
           </ul>
           <p className="mt-3">
-            The password for all of them is <code>chargeops-demo</code>.
+            They share one password, held in Secret Manager and given to the
+            team out of band. It is not stored in this page, in the image, or in
+            the repository.
           </p>
           <p className="mt-2">
             {/* Both of these resolve against the business data rather than a

@@ -36,6 +36,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { requiredSecret } from "../secrets.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -56,8 +57,10 @@ const ROOT = process.env.STORAGE_DIR
  * Secret used to sign download URLs. In the cloud, S3 signs with your IAM
  * credentials and this disappears entirely.
  */
-const SIGNING_SECRET =
-  process.env.STORAGE_SIGNING_SECRET || "chargeops-dev-signing-key-change-me";
+const SIGNING_SECRET = requiredSecret(
+  "STORAGE_SIGNING_SECRET",
+  "chargeops-local-signing-key"
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Key helpers

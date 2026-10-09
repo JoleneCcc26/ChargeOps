@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { Router } from "express";
 import { pool } from "./db.js";
+import { requiredSecret } from "./secrets.js";
 
 export const ROLES = Object.freeze({
   /** Owns network availability: triage, dispatch, SLA. */
@@ -24,7 +25,9 @@ export const ROLES = Object.freeze({
 });
 
 const TOKEN_TTL_SECONDS = Math.max(300, Number(process.env.AUTH_TOKEN_TTL_SECONDS) || 8 * 60 * 60);
-const TOKEN_SECRET = process.env.AUTH_TOKEN_SECRET || "chargeops-local-token-secret-change-me";
+// Signing key for session tokens. Secret Manager supplies it in production;
+// a missing value there is a startup failure, not a default.
+const TOKEN_SECRET = requiredSecret("AUTH_TOKEN_SECRET", "chargeops-local-token-secret");
 
 function configuredUsers() {
   if (process.env.AUTH_USERS_JSON) {
@@ -53,13 +56,13 @@ function configuredUsers() {
   return [
     {
       username: process.env.AUTH_OPS_USERNAME || "ops",
-      password: process.env.AUTH_OPS_PASSWORD || "chargeops-demo",
+      password: requiredSecret("AUTH_OPS_PASSWORD", "chargeops-local-demo"),
       role: ROLES.OPS_MANAGER,
       displayName: "Operations Manager",
     },
     {
       username: process.env.AUTH_TECH_USERNAME || "tech",
-      password: process.env.AUTH_TECH_PASSWORD || "chargeops-demo",
+      password: requiredSecret("AUTH_TECH_PASSWORD", "chargeops-local-demo"),
       role: ROLES.TECHNICIAN,
       displayName: "Field Technician",
       // Links the login account to a row in the `technician` table.
@@ -72,13 +75,13 @@ function configuredUsers() {
     },
     {
       username: process.env.AUTH_FINANCE_USERNAME || "finance",
-      password: process.env.AUTH_FINANCE_PASSWORD || "chargeops-demo",
+      password: requiredSecret("AUTH_FINANCE_PASSWORD", "chargeops-local-demo"),
       role: ROLES.FINANCE,
       displayName: "Finance & Billing",
     },
     {
       username: process.env.AUTH_HOST_USERNAME || "host",
-      password: process.env.AUTH_HOST_PASSWORD || "chargeops-demo",
+      password: requiredSecret("AUTH_HOST_PASSWORD", "chargeops-local-demo"),
       role: ROLES.SITE_HOST,
       // A placeholder until the first request resolves the real company name;
       // signing in as host<id> names the company directly.
@@ -89,7 +92,7 @@ function configuredUsers() {
     },
     {
       username: process.env.AUTH_VIEWER_USERNAME || "viewer",
-      password: process.env.AUTH_VIEWER_PASSWORD || "chargeops-demo",
+      password: requiredSecret("AUTH_VIEWER_PASSWORD", "chargeops-local-demo"),
       role: ROLES.VIEWER,
       displayName: "Read-only Viewer",
     },
@@ -215,7 +218,7 @@ async function resolveTechnicianLogin(username, password) {
 
   // Check the password before touching the database, so a wrong password costs
   // the same whether or not that technician id exists.
-  const expected = process.env.AUTH_TECH_PASSWORD || "chargeops-demo";
+  const expected = requiredSecret("AUTH_TECH_PASSWORD", "chargeops-local-demo");
   if (!safeEqual(password, expected)) return null;
 
   const technicianId = Number(match[1]);
@@ -269,7 +272,7 @@ async function resolveSiteHostLogin(username, password) {
 
   // Password first, so a wrong password costs the same whether or not that
   // company exists — otherwise the timing difference enumerates the estate.
-  const expected = process.env.AUTH_HOST_PASSWORD || "chargeops-demo";
+  const expected = requiredSecret("AUTH_HOST_PASSWORD", "chargeops-local-demo");
   if (!safeEqual(password, expected)) return null;
 
   const companyId = Number(match[1]);

@@ -110,7 +110,7 @@ async function login() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       username: process.env.DEMO_USERNAME || "ops",
-      password: process.env.DEMO_PASSWORD || "chargeops-demo",
+      password: process.env.DEMO_PASSWORD || "chargeops-local-demo",
     }),
   });
   const body = await res.json().catch(() => ({}));
