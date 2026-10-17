@@ -57,6 +57,11 @@ app.get("/api/health", async (_req, res) => {
   }
 });
 
+// Liveness probe — checks only if the API is running
+app.get("/api/health/live", (_req, res) => {
+  res.status(200).json({ status: "alive" });
+});
+
 app.use("/api/auth", rateLimit({ max: 10, namespace: "auth" }), authRouter);
 
 // A signed URL is already a short-lived capability, and browser image/PDF
