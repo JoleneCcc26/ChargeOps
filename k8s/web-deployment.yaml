@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chargeops-web
+  labels:
+    app: chargeops-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: chargeops-web
+  template:
+    metadata:
+      labels:
+        app: chargeops-web
+    spec:
+      containers:
+        - name: web
+          image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/web:v3
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              memory: "256Mi"
+          readinessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
