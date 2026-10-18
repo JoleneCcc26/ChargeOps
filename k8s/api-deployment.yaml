@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chargeops-api
+  labels:
+    app: chargeops-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: chargeops-api
+  template:
+    metadata:
+      labels:
+        app: chargeops-api
+    spec:
+      serviceAccountName: chargeops-ksa
+      containers:
+        - name: api
+          image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v4
+          ports:
+            - containerPort: 4000
+          env:
+            - name: CORS_ORIGIN
+              value: "https://chargeops.ddns.net"
+            - name: DB_HOST
+              value: "10.117.0.3"
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_USER
+              value: "chargeops"
+            - name: DB_NAME
+              value: "ev"
+            - name: DB_SSL
+              value: "false"
+            - name: PORT
+              value: "4000"
+            - name: STORAGE_DRIVER
+              value: "gcs"
+            - name: STORAGE_BUCKET
+              value: "chargeops-group13-uploads"
+            - name: SECRETS_PROVIDER
+              value: "gcp"
+            - name: SECRETS_PROJECT
+              value: "chargeops-group13"
+            - name: TRUST_PROXY
+              value: "true"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /api/health/live
+              port: 4000
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 5

@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: chargeops-ingress
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "chargeops-ingress-ip"
+    networking.gke.io/managed-certificates: "chargeops-ssl-cert"
+    networking.gke.io/v1beta1.FrontendConfig: "chargeops-frontend-config"
+spec:
+  rules:
+    - host: chargeops.ddns.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: chargeops-web
+                port:
+                  number: 80
