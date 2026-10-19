@@ -1,0 +1,56 @@
+# The background half of the application: billing, file processing, telemetry
+# and the simulation queue. It has no Service and no Ingress because nothing
+# calls it - it pulls work from the job_queue table in Cloud SQL.
+#
+# One replica on purpose. The supervisor forks its own worker processes and
+# leases jobs, so a second replica would mean two supervisors competing for the
+# same queue; scale the pool inside the pod, not by adding pods.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chargeops-worker
+  labels:
+    app: chargeops-worker
+spec:
+  replicas: 1
+  strategy:
+    # Never run two supervisors at once, not even for the seconds of a rollout.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: chargeops-worker
+  template:
+    metadata:
+      labels:
+        app: chargeops-worker
+    spec:
+      serviceAccountName: chargeops-ksa
+      containers:
+        - name: worker
+          image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v4
+          command: ["node", "--import", "./server/boot.js", "server/workers/supervisor.js"]
+          env:
+            - name: DB_HOST
+              value: "10.117.0.3"
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_USER
+              value: "chargeops"
+            - name: DB_NAME
+              value: "ev"
+            - name: DB_SSL
+              value: "false"
+            - name: STORAGE_DRIVER
+              value: "gcs"
+            - name: STORAGE_BUCKET
+              value: "chargeops-group13-uploads"
+            - name: SECRETS_PROVIDER
+              value: "gcp"
+            - name: SECRETS_PROJECT
+              value: "chargeops-group13"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              memory: "512Mi"

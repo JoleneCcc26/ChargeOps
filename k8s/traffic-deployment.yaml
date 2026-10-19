@@ -1,0 +1,59 @@
+# The simulated charger fleet. It is not part of the product: it exists so a
+# deployment nobody is clicking still looks like a working network, with
+# sessions opening and closing on a daily demand curve.
+#
+# It drives the application through the ordinary HTTP API, reached inside the
+# cluster at the api Service, so every session it starts goes through the same
+# authentication, validation and billing queue as a real one.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chargeops-traffic
+  labels:
+    app: chargeops-traffic
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: chargeops-traffic
+  template:
+    metadata:
+      labels:
+        app: chargeops-traffic
+    spec:
+      serviceAccountName: chargeops-ksa
+      containers:
+        - name: traffic
+          image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v4
+          command: ["node", "--import", "./server/boot.js", "scripts/live-traffic.mjs"]
+          env:
+            - name: DEMO_API_URL
+              value: "http://api:4000"
+            - name: DEMO_USERNAME
+              value: "ops"
+            - name: DB_HOST
+              value: "10.117.0.3"
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_USER
+              value: "chargeops"
+            - name: DB_NAME
+              value: "ev"
+            - name: DB_SSL
+              value: "false"
+            - name: STORAGE_DRIVER
+              value: "gcs"
+            - name: STORAGE_BUCKET
+              value: "chargeops-group13-uploads"
+            - name: SECRETS_PROVIDER
+              value: "gcp"
+            - name: SECRETS_PROJECT
+              value: "chargeops-group13"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              memory: "512Mi"
