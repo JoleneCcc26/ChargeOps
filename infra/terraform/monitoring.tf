@@ -82,6 +82,8 @@ resource "google_monitoring_alert_policy" "http_5xx" {
 }
 
 # ── Dashboard: errors and resource usage ─────────────────────────────────────
+# Cloud Monitoring drops zero tile positions and fills in targetAxis = "Y1";
+# both are written that way here so the stored dashboard matches exactly.
 resource "google_monitoring_dashboard" "ops" {
   dashboard_json = jsonencode({
     displayName = "ChargeOps - Operations"
@@ -89,7 +91,7 @@ resource "google_monitoring_dashboard" "ops" {
       columns = 12
       tiles = [
         {
-          xPos = 0, yPos = 0, width = 4, height = 4
+          width = 4, height = 4
           widget = {
             title = "HTTP 5xx responses (last hour)"
             scorecard = {
@@ -108,11 +110,12 @@ resource "google_monitoring_dashboard" "ops" {
           }
         },
         {
-          xPos = 4, yPos = 0, width = 8, height = 4
+          xPos = 4, width = 8, height = 4
           widget = {
             title = "HTTP 5xx responses per minute"
             xyChart = {
               dataSets = [{
+                targetAxis = "Y1"
                 plotType = "STACKED_BAR"
                 timeSeriesQuery = {
                   timeSeriesFilter = {
@@ -131,11 +134,12 @@ resource "google_monitoring_dashboard" "ops" {
           }
         },
         {
-          xPos = 0, yPos = 4, width = 6, height = 4
+          yPos = 4, width = 6, height = 4
           widget = {
             title = "CPU usage by container (cores)"
             xyChart = {
               dataSets = [{
+                targetAxis = "Y1"
                 plotType = "LINE"
                 timeSeriesQuery = {
                   timeSeriesFilter = {
@@ -159,6 +163,7 @@ resource "google_monitoring_dashboard" "ops" {
             title = "Memory usage by container"
             xyChart = {
               dataSets = [{
+                targetAxis = "Y1"
                 plotType = "LINE"
                 timeSeriesQuery = {
                   timeSeriesFilter = {
@@ -177,11 +182,12 @@ resource "google_monitoring_dashboard" "ops" {
           }
         },
         {
-          xPos = 0, yPos = 8, width = 6, height = 4
+          yPos = 8, width = 6, height = 4
           widget = {
             title = "Container restarts"
             xyChart = {
               dataSets = [{
+                targetAxis = "Y1"
                 plotType = "STACKED_BAR"
                 timeSeriesQuery = {
                   timeSeriesFilter = {
