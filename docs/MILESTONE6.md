@@ -39,7 +39,7 @@ resource.labels.container_name="api"
 
 A counter (DELTA, INT64): each matching log entry adds one.
 
-**Alert:** more than 2 HTTP 5xx responses within one minute → email to the
+**Alert:** more than 2 HTTP 5xx responses within five minutes → email to the
 addresses in `alert_emails`. Closes automatically 30 minutes after the
 condition clears.
 

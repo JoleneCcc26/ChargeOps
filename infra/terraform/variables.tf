@@ -34,7 +34,7 @@ variable "alert_emails" {
 }
 
 variable "alert_5xx_threshold" {
-  description = "Alert when more than this many 5xx responses are logged within one minute."
+  description = "Alert when more than this many 5xx responses are logged within five minutes."
   type        = number
   default     = 2
 }
