@@ -48,10 +48,7 @@ condition clears.
 Apply Terraform — see `infra/terraform/README.md`. The workflow already
 names the Workload Identity provider and the `github-deployer` service account
 (`terraform output`); these are identifiers, not credentials, so no key or
-secret is stored in GitHub. To move them to repository variables, add
-`GCP_WORKLOAD_IDENTITY_PROVIDER` and `GCP_DEPLOYER_SERVICE_ACCOUNT` under
-Settings → Secrets and variables → Actions → Variables; the workflow uses
-those when present.
+secret is stored in GitHub.
 
 ## Demo script
 

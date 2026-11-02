@@ -39,10 +39,9 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           # Names, not credentials (from `terraform output`). Sign-in works
-          # only for workflows in this repository. Repository variables with
-          # these names, if added later, take precedence.
-          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER || 'projects/630804012367/locations/global/workloadIdentityPools/github-actions/providers/github' }}
-          service_account: ${{ vars.GCP_DEPLOYER_SERVICE_ACCOUNT || 'github-deployer@chargeops-group13.iam.gserviceaccount.com' }}
+          # only for workflows in this repository.
+          workload_identity_provider: projects/630804012367/locations/global/workloadIdentityPools/github-actions/providers/github
+          service_account: github-deployer@chargeops-group13.iam.gserviceaccount.com
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
