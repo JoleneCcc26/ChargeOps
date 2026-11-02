@@ -44,7 +44,7 @@ resource "google_monitoring_alert_policy" "http_5xx" {
   combiner     = "OR"
 
   conditions {
-    display_name = "More than ${var.alert_5xx_threshold} HTTP 5xx responses in one minute"
+    display_name = "More than ${var.alert_5xx_threshold} HTTP 5xx responses in 5 minutes"
 
     condition_threshold {
       filter          = "resource.type=\"k8s_container\" AND metric.type=\"${local.http_5xx_metric}\""
@@ -52,8 +52,11 @@ resource "google_monitoring_alert_policy" "http_5xx" {
       threshold_value = var.alert_5xx_threshold
       duration        = "0s"
 
+      # Log-based metric points arrive a minute or more after the log entry.
+      # A 5-minute window still contains them when the policy evaluates; a
+      # 1-minute window had already moved on, so the alert never fired.
       aggregations {
-        alignment_period     = "60s"
+        alignment_period     = "300s"
         per_series_aligner   = "ALIGN_SUM"
         cross_series_reducer = "REDUCE_SUM"
       }
@@ -73,7 +76,7 @@ resource "google_monitoring_alert_policy" "http_5xx" {
   documentation {
     mime_type = "text/markdown"
     content   = <<-EOT
-      The ChargeOps API returned more than ${var.alert_5xx_threshold} HTTP 5xx responses within one minute.
+      The ChargeOps API returned more than ${var.alert_5xx_threshold} HTTP 5xx responses within 5 minutes.
 
       Find them in Logs Explorer with:
       `resource.labels.container_name="api" AND httpRequest.status>=500`
@@ -112,16 +115,16 @@ resource "google_monitoring_dashboard" "ops" {
         {
           xPos = 4, width = 8, height = 4
           widget = {
-            title = "HTTP 5xx responses per minute"
+            title = "HTTP 5xx responses per 5 minutes (alert window)"
             xyChart = {
               dataSets = [{
                 targetAxis = "Y1"
-                plotType = "STACKED_BAR"
+                plotType   = "LINE"
                 timeSeriesQuery = {
                   timeSeriesFilter = {
                     filter = "metric.type=\"${local.http_5xx_metric}\" AND resource.type=\"k8s_container\""
                     aggregation = {
-                      alignmentPeriod    = "60s"
+                      alignmentPeriod    = "300s"
                       perSeriesAligner   = "ALIGN_SUM"
                       crossSeriesReducer = "REDUCE_SUM"
                     }
