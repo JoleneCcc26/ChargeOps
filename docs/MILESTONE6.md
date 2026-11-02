@@ -45,14 +45,13 @@ condition clears.
 
 ## One-time setup
 
-1. Apply Terraform — see `infra/terraform/README.md`.
-2. In GitHub → repository **Settings → Secrets and variables → Actions →
-   Variables**, add (values from `terraform output`):
-   - `GCP_WORKLOAD_IDENTITY_PROVIDER`
-   - `GCP_DEPLOYER_SERVICE_ACCOUNT`
-
-   These are identifiers, not credentials; no key or secret is stored in
-   GitHub.
+Apply Terraform — see `infra/terraform/README.md`. The workflow already
+names the Workload Identity provider and the `github-deployer` service account
+(`terraform output`); these are identifiers, not credentials, so no key or
+secret is stored in GitHub. To move them to repository variables, add
+`GCP_WORKLOAD_IDENTITY_PROVIDER` and `GCP_DEPLOYER_SERVICE_ACCOUNT` under
+Settings → Secrets and variables → Actions → Variables; the workflow uses
+those when present.
 
 ## Demo script
 
