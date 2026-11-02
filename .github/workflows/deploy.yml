@@ -1,0 +1,154 @@
+name: Deploy
+
+# Every push to the deployment branch builds both images, rolls them out to
+# GKE, health-checks the live HTTPS URL, and rolls back automatically if the
+# rollout or the health check fails.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deployment at a time; a second push waits instead of racing the first.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # GitHub OIDC token, exchanged for a short-lived Google token
+
+env:
+  PROJECT_ID: chargeops-group13
+  REGION: us-central1
+  CLUSTER: chargeops-gke
+  REGISTRY: us-central1-docker.pkg.dev/chargeops-group13/chargeops
+  APP_URL: https://chargeops.ddns.net
+  VERSION: ${{ github.sha }}
+
+jobs:
+  deploy:
+    name: Build, deploy, health-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (Workload Identity, no key)
+        uses: google-github-actions/auth@v2
+        with:
+          # Names, not credentials (from `terraform output`). Sign-in works
+          # only for workflows in this repository.
+          workload_identity_provider: projects/630804012367/locations/global/workloadIdentityPools/github-actions/providers/github
+          service_account: github-deployer@chargeops-group13.iam.gserviceaccount.com
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build images
+        run: |
+          docker build --target runtime --build-arg APP_VERSION="$VERSION" -t "$REGISTRY/api:$VERSION" .
+          docker build --target web -t "$REGISTRY/web:$VERSION" .
+
+      - name: Push images to Artifact Registry
+        run: |
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker push "$REGISTRY/api:$VERSION"
+          docker push "$REGISTRY/web:$VERSION"
+
+      - name: Connect to the cluster (DNS-based control plane endpoint)
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.CLUSTER }}
+          location: ${{ env.REGION }}
+          use_dns_based_endpoint: true
+
+      - name: Record the version currently serving
+        id: previous
+        run: |
+          img() { kubectl get deployment "$1" -o jsonpath='{.spec.template.spec.containers[0].image}'; }
+          {
+            echo "api=$(img chargeops-api)"
+            echo "web=$(img chargeops-web)"
+            echo "worker=$(img chargeops-worker)"
+            echo "traffic=$(img chargeops-traffic)"
+            echo "recorded=true"
+          } | tee -a "$GITHUB_OUTPUT"
+
+      - name: Roll out the new images
+        run: |
+          kubectl set image deployment/chargeops-api     api="$REGISTRY/api:$VERSION"
+          kubectl set image deployment/chargeops-web     web="$REGISTRY/web:$VERSION"
+          kubectl set image deployment/chargeops-worker  worker="$REGISTRY/api:$VERSION"
+          kubectl set image deployment/chargeops-traffic traffic="$REGISTRY/api:$VERSION"
+          for d in chargeops-api chargeops-web chargeops-worker chargeops-traffic; do
+            kubectl annotate deployment "$d" kubernetes.io/change-cause="deploy ${VERSION::7} (run ${{ github.run_id }})" --overwrite
+          done
+          # The readiness probe gates this: a pod that cannot answer
+          # /api/health never becomes ready, and the rollout times out.
+          for d in chargeops-api chargeops-web chargeops-worker chargeops-traffic; do
+            kubectl rollout status deployment/"$d" --timeout=240s
+          done
+
+      - name: Health check the live HTTPS URL
+        run: |
+          for i in $(seq 1 12); do
+            body=$(curl -fsS --max-time 10 "$APP_URL/api/health" || true)
+            echo "attempt $i: ${body:-no response}"
+            if echo "$body" | jq -e --arg v "$VERSION" '.status == "ok" and .version == $v' >/dev/null 2>&1; then
+              curl -fsS -o /dev/null --max-time 10 "$APP_URL/" && echo "Healthy: $VERSION is serving $APP_URL" && exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Health check failed: $APP_URL/api/health did not report version $VERSION"
+          exit 1
+
+      - name: Automatic rollback
+        id: rollback
+        if: failure() && steps.previous.outputs.recorded == 'true'
+        env:
+          PREV_API: ${{ steps.previous.outputs.api }}
+          PREV_WEB: ${{ steps.previous.outputs.web }}
+          PREV_WORKER: ${{ steps.previous.outputs.worker }}
+          PREV_TRAFFIC: ${{ steps.previous.outputs.traffic }}
+        run: |
+          echo "::warning::Deployment of ${VERSION::7} failed; rolling back"
+          rollback() { # deployment, container, previous image
+            current=$(kubectl get deployment "$1" -o jsonpath='{.spec.template.spec.containers[0].image}')
+            if [ "$current" != "$3" ]; then
+              echo "$1: $current -> $3"
+              kubectl rollout undo deployment/"$1" || true
+              # `undo` returns to the previous revision; pin the recorded
+              # image too, in case history had no usable revision.
+              kubectl set image deployment/"$1" "$2=$3"
+            fi
+          }
+          rollback chargeops-api     api     "$PREV_API"
+          rollback chargeops-web     web     "$PREV_WEB"
+          rollback chargeops-worker  worker  "$PREV_WORKER"
+          rollback chargeops-traffic traffic "$PREV_TRAFFIC"
+          for d in chargeops-api chargeops-web chargeops-worker chargeops-traffic; do
+            kubectl rollout status deployment/"$d" --timeout=300s
+          done
+          kubectl get deployments -o wide
+
+      - name: Verify the previous version is serving
+        if: failure() && steps.rollback.outcome == 'success'
+        env:
+          PREV_API: ${{ steps.previous.outputs.api }}
+        run: |
+          prev_tag="${PREV_API##*:}"
+          for i in $(seq 1 12); do
+            body=$(curl -fsS --max-time 10 "$APP_URL/api/health" || true)
+            echo "attempt $i: ${body:-no response}"
+            # Images built before this pipeline report no version; for those,
+            # a healthy response from the restored image is the check.
+            if echo "$body" | jq -e --arg v "$prev_tag" '.status == "ok" and ((.version // $v) == $v or ($v | test("^[0-9a-f]{40}$") | not))' >/dev/null 2>&1; then
+              echo "Rollback verified: $PREV_API is serving $APP_URL"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Rollback did not restore a healthy $APP_URL"
+          exit 1

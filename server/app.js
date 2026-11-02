@@ -9,6 +9,7 @@ import cors    from "cors";
 import { pingDatabase } from "./db.js";
 import { allowRoles, authRouter, requireAuth, ROLES } from "./auth.js";
 import { corsOptions, rateLimit, securityHeaders } from "./security.js";
+import { errorFields, httpLogger, installJsonConsole } from "./lib/logger.js";
 
 import dashboardRouter   from "./routes/dashboard.js";
 import stationsRouter    from "./routes/stations.js";
@@ -33,6 +34,8 @@ import billingRouter from "./routes/billing.js";
 import opsRouter         from "./routes/ops.js";
 
 
+installJsonConsole();
+
 export const app = express();
 
 // ── Middleware ──────────────────────────────────────────────────────────────
@@ -40,6 +43,7 @@ export const app = express();
 // would let a client evade the rate limiter. Docker sets TRUST_PROXY=true
 // because Nginx is the single known hop in front of Express.
 app.set("trust proxy", process.env.TRUST_PROXY === "true" ? 1 : false);
+app.use(httpLogger());
 app.use(cors(corsOptions()));
 app.use(securityHeaders);
 // Telemetry batches of 500 beats are a few hundred KB, past Express's 100 KB
@@ -51,7 +55,7 @@ app.use(express.json({ limit: "2mb" }));
 app.get("/api/health", async (_req, res) => {
   try {
     const db = await pingDatabase();
-    res.json({ status: "ok", db });
+    res.json({ status: "ok", db, version: process.env.APP_VERSION || "dev" });
   } catch (err) {
     res.status(500).json({ status: "error", error: err.message });
   }
@@ -122,6 +126,15 @@ app.use("/api/billing",
   billingRouter);
 
 // Infrastructure internals — not a business view at all.
+// Controlled failure for the monitoring demo: always answers 500 through the
+// normal error handler, so it produces the same log entry a real fault would.
+// Operations managers only, and it touches no data.
+app.post("/api/ops/fault", allowRoles(ROLES.OPS_MANAGER), (_req, _res, next) => {
+  const err = new Error("Controlled fault triggered for monitoring demo");
+  err.code = "CONTROLLED_FAULT";
+  next(err);
+});
+
 app.use("/api/ops", allowRoles(ROLES.OPS_MANAGER, ROLES.VIEWER), opsRouter);
 
 // ── Health check ────────────────────────────────────────────────────────────
@@ -132,6 +145,8 @@ app.use("/api/ops", allowRoles(ROLES.OPS_MANAGER, ROLES.VIEWER), opsRouter);
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {
   console.error("[api error]", err);
+  // Picked up by httpLogger so the request entry carries the cause.
+  res.locals.error = errorFields(err);
 
   // Upload problems are the client's fault, not ours - answering 500 would make
   // the browser retry a file that will never be accepted.

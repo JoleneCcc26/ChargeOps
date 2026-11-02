@@ -46,4 +46,8 @@ COPY migrations ./migrations
 RUN mkdir -p /app/server/.storage && chown -R node:node /app
 USER node
 EXPOSE 4000
+# The commit the image was built from, reported by /api/health so a deploy
+# (or a rollback) can confirm which version is actually serving.
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
 CMD ["node", "--import", "./server/boot.js", "server/index.js"]

@@ -52,3 +52,14 @@ backups/
 
 # Course deliverables — report, slides, video script. Kept locally, not published.
 deliverables/
+
+# Terraform: state lives in the GCS backend; local state, plans and variable
+# files can hold resource details and must never be committed.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+*.tfvars
+!*.tfvars.example

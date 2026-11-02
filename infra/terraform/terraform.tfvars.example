@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars (ignored by git) and fill in.
+billing_account_id = "XXXXXX-XXXXXX-XXXXXX"
+
+# Same /32s as the chargeops-allow-team firewall rule, in the same order.
+team_ip_ranges = [
+  "203.0.113.10/32",
+]
+
+alert_emails = [
+  "teammate@example.com",
+]
