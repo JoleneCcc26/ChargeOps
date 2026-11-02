@@ -6,14 +6,15 @@
 # Autopilot manages nodes, node pools and their scaling itself; those
 # settings are not declared here.
 resource "google_container_cluster" "primary" {
-  name     = "chargeops-gke"
-  location = var.region
+  name        = "chargeops-gke"
+  location    = var.region
+  description = "ChargeOps Group 13 Kubernetes Autopilot cluster for Milestone 5 orchestration, autoscaling, and HTTPS deployment."
 
   enable_autopilot    = true
   deletion_protection = true
 
-  network    = data.google_compute_network.default.name
-  subnetwork = "default"
+  network    = "projects/${var.project_id}/global/networks/default"
+  subnetwork = "projects/${var.project_id}/regions/${var.region}/subnetworks/default"
 
   release_channel {
     channel = "REGULAR"
@@ -49,6 +50,8 @@ resource "google_container_cluster" "primary" {
       node_pool_auto_config,
       cluster_autoscaling,
       min_master_version,
+      enable_tpu,
+      resource_labels,
     ]
   }
 }

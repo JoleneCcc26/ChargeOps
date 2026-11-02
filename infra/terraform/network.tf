@@ -12,6 +12,7 @@ resource "google_compute_global_address" "ingress" {
 # here.
 resource "google_compute_firewall" "allow_iap_ssh" {
   name          = "chargeops-allow-iap-ssh"
+  description   = "SSH-in-browser / IAP tunnel for the team (authenticated by Google IAM)"
   network       = data.google_compute_network.default.name
   direction     = "INGRESS"
   priority      = 1000
@@ -26,6 +27,7 @@ resource "google_compute_firewall" "allow_iap_ssh" {
 
 resource "google_compute_firewall" "allow_team" {
   name          = "chargeops-allow-team"
+  description   = "ChargeOps: web and SSH from team IPs only"
   network       = data.google_compute_network.default.name
   direction     = "INGRESS"
   priority      = 1000
@@ -41,6 +43,7 @@ resource "google_compute_firewall" "allow_team" {
 # ── Container images ─────────────────────────────────────────────────────────
 resource "google_artifact_registry_repository" "images" {
   repository_id = "chargeops"
+  description   = "ChargeOps container images (Milestone 3)"
   location      = var.region
   format        = "DOCKER"
 }

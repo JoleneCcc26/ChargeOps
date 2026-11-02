@@ -29,8 +29,18 @@ Milestone 6 monitoring and the identity the deployment pipeline uses.
 
 ## First run
 
-Run from Cloud Shell (Terraform is pre-installed), signed in as a project
+Run from Cloud Shell, signed in as a project
 Owner who is also a billing account administrator (needed for the budget).
+
+Cloud Shell does not include Terraform; install it once into your home
+directory, which persists between sessions:
+
+```bash
+mkdir -p ~/bin && cd ~/bin
+curl -fsSLO https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip
+unzip -o terraform_1.9.8_linux_amd64.zip terraform && rm terraform_1.9.8_linux_amd64.zip
+export PATH="$HOME/bin:$PATH"
+```
 
 ```bash
 # 1. One-time: the state bucket (versioned, private).

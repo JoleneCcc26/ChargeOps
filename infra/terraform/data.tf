@@ -4,11 +4,12 @@
 # created with "automatically assigned IP range", and the peering that uses it.
 resource "google_compute_global_address" "private_services" {
   name          = var.psa_range_name
+  description   = "Private services access for Cloud SQL"
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
   address       = var.psa_range_address
   prefix_length = var.psa_range_prefix_length
-  network       = data.google_compute_network.default.id
+  network       = data.google_compute_network.default.self_link
 }
 
 resource "google_service_networking_connection" "private_services" {
@@ -29,6 +30,8 @@ resource "google_sql_database_instance" "db" {
     availability_type = "ZONAL"
     disk_size         = 10
     disk_autoresize   = false
+
+    enable_dataplex_integration = true
 
     location_preference {
       zone = var.zone
