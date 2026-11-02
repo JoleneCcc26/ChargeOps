@@ -16,7 +16,12 @@
 // is loaded at all, which is the ordering guarantee we actually need. Child
 // processes inherit execArgv, so the workers the supervisor forks get it too.
 import "./env.js";
+import { installJsonConsole } from "./lib/logger.js";
 import { loadSecrets } from "./secrets.js";
+
+// First, so even a failed secret load is logged as JSON. Workers and the
+// traffic simulator get this through the same preload.
+installJsonConsole();
 
 const result = await loadSecrets();
 if (result.provider === "gcp") {
