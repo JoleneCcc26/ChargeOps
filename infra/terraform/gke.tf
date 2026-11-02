@@ -16,6 +16,8 @@ resource "google_container_cluster" "primary" {
   network    = "projects/${var.project_id}/global/networks/default"
   subnetwork = "projects/${var.project_id}/regions/${var.region}/subnetworks/default"
 
+  in_transit_encryption_config = "IN_TRANSIT_ENCRYPTION_DISABLED"
+
   release_channel {
     channel = "REGULAR"
   }
