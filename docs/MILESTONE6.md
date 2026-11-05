@@ -87,3 +87,6 @@ four minutes; the old pods keep serving throughout (two replicas, surge of
 one). The workflow then rolls every deployment back and confirms
 `/api/health` reports the previous version. Revert the commit afterwards and
 push again; that run should succeed.
+
+
+Live demo deployment for the Milestone 6 recording
