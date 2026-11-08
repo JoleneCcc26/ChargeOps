@@ -55,7 +55,7 @@ app.use(express.json({ limit: "2mb" }));
 app.get("/api/health", async (_req, res) => {
   try {
     const db = await pingDatabase();
-    res.json({ status: "ok", db, version: process.env.APP_VERSION || "dev" });
+    res.status(503).json({ status: "error", error: "deliberately broken for rollback demo" });
   } catch (err) {
     res.status(500).json({ status: "error", error: err.message });
   }
