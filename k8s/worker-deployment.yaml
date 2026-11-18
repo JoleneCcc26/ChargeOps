@@ -48,6 +48,10 @@ spec:
               value: "gcp"
             - name: SECRETS_PROJECT
               value: "chargeops-group13"
+            # Keep finished jobs for 2 hours, not 24: the queue-stats query scans
+            # the whole table every few seconds, so its size sets the DB load.
+            - name: JOB_RETENTION_HOURS
+              value: "2"
           resources:
             requests:
               cpu: "250m"

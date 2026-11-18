@@ -28,6 +28,9 @@ spec:
         - name: traffic
           image: us-central1-docker.pkg.dev/chargeops-group13/chargeops/api:v4
           command: ["node", "--import", "./server/boot.js", "scripts/live-traffic.mjs"]
+          # 10 heartbeats per tick instead of 40: each heartbeat is a queue job,
+          # and 40 kept the job table large enough to pin the database CPU.
+          args: ["--heartbeats", "10"]
           env:
             - name: DEMO_API_URL
               value: "http://api:4000"
