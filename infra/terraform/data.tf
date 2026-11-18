@@ -25,7 +25,7 @@ resource "google_sql_database_instance" "db" {
   deletion_protection = true
 
   settings {
-    tier              = "db-f1-micro"
+    tier              = "db-custom-1-3840"
     edition           = "ENTERPRISE"
     availability_type = "ZONAL"
     disk_size         = 10
