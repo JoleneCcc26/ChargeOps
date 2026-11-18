@@ -25,7 +25,7 @@ import { useAuth } from "../context/AuthContext";
 import { cardShell, cn, inputShell } from "../lib/cn";
 import { StatCard } from "../components/StatCard";
 import { PageHeader } from "../components/PageHeader";
-import { Modal } from "./MyWork";
+import { Modal } from "../components/Modal";
 
 interface Debt {
   session_id: number;

@@ -24,6 +24,7 @@ import {
 import { DataTable, type ColumnDef } from "../components/DataTable";
 import { PageHeader } from "../components/PageHeader";
 import { StatCard } from "../components/StatCard";
+import { ResolveDialog } from "../components/ResolveDialog";
 import { useApi } from "../hooks/useApi";
 import {
   fetchMaintenancePage, fetchStations, fetchTechnicians,
@@ -107,6 +108,7 @@ export function MaintenanceLogPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [assignTarget, setAssignTarget] = useState<MaintenanceLog | null>(null);
+  const [resolveTarget, setResolveTarget] = useState<MaintenanceLog | null>(null);
   const [reporting, setReporting] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -207,10 +209,7 @@ export function MaintenanceLogPage() {
     if (row.status === "In Progress" && (isManager || mine)) {
       return (
         <button type="button" disabled={busy}
-          onClick={() => {
-            const notes = window.prompt("What was done?", "Fault cleared on site");
-            if (notes !== null) run(row.id, () => resolveWorkOrder(row.id, notes));
-          }}
+          onClick={() => setResolveTarget(row)}
           className={cn(inputShell, "flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 dark:text-accent-glow disabled:opacity-40")}>
           <CheckCircle2 className="h-3.5 w-3.5" /> Resolve
         </button>
@@ -424,6 +423,21 @@ export function MaintenanceLogPage() {
             const id = assignTarget.id;
             setAssignTarget(null);
             run(id, () => assignWorkOrder(id, technicianId));
+          }}
+        />
+      ) : null}
+
+      {/* The same dialog as the technician's job list, so a job closed from
+          this board can carry its repair photo too. */}
+      {resolveTarget ? (
+        <ResolveDialog
+          order={resolveTarget}
+          busy={busyId === resolveTarget.id}
+          onClose={() => setResolveTarget(null)}
+          onSubmit={async (notes) => {
+            const id = resolveTarget.id;
+            await run(id, () => resolveWorkOrder(id, notes));
+            setResolveTarget(null);
           }}
         />
       ) : null}
