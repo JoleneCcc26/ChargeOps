@@ -133,6 +133,8 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
  * itself so it can append the multipart boundary token. Setting it by hand is
  * the classic way to make a working upload endpoint start returning 400.
  */
+const UPLOAD_TIMEOUT_MS = 3 * 60 * 1000;
+
 export async function apiUpload<T>(
   path: string,
   files: File[],
@@ -144,7 +146,27 @@ export async function apiUpload<T>(
     if (v !== null && v !== undefined && v !== "") form.append(k, String(v));
   }
 
-  const res = await fetch(buildUrl(path).toString(), { method: "POST", headers: authHeaders(), body: form });
+  // A proxy that refuses the body part-way through (a 413 from nginx, a
+  // dropped connection) can leave the browser waiting forever for a reply,
+  // with the button stuck on "Uploading". Give up after three minutes, which
+  // is still enough for a 15 MB photo over a slow mobile link.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(buildUrl(path).toString(), {
+      method: "POST",
+      headers: authHeaders(),
+      body: form,
+      signal: controller.signal,
+    });
+  } catch (e) {
+    if (controller.signal.aborted) throw new Error("the upload timed out - check the connection and try again");
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+  if (res.status === 413) throw new Error("the file is larger than the server accepts");
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error ?? `HTTP ${res.status}`);
